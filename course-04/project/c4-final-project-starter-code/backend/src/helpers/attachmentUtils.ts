@@ -1,35 +1,27 @@
-
-
 import * as AWS from 'aws-sdk'
 import * as AWSXRay from 'aws-xray-sdk'
-import { createLogger } from '../utils/logger'
 
 const XAWS = AWSXRay.captureAWS(AWS)
-const logger = createLogger('AttachmentUtils');
-const bucketName = process.env.ATTACHMENT_S3_BUCKET;
-const urlExpiration = Number(process.env.SIGNED_URL_EXPIRATION);
-const s3 = new XAWS.S3({
-  signatureVersion: 'v4'
-});
 
-// TODO: Implement the fileStogare logic
-export const generateSignedURL = (userId, todoId) => {
-  const objectName = `${userId}.${todoId}`;
-  try {
-    const signedUrl = s3.getSignedUrl('putObject', {
-      Bucket: bucketName,
-      Key: objectName,
-      Expires: urlExpiration
-    });
+// TODO: Implement the fileStorage logic
+const s3Bucket = process.env.ATTACHMENT_S3_BUCKET
+const urlExpiration = 300
 
-    return signedUrl;
-  }catch(err) {
-    logger.error({
-      func: "generateSignedURL",
-      err: err.message,
-      params: {
-        objectName
-      }
-    });
-  }
+export class AttachmentUtils{
+    constructor(
+        private readonly s3 = new XAWS.S3({signatureVersion:'v4'}),
+        private readonly bucketname = s3Bucket
+    ){}
+
+    getAttachmentUrl(todoId:string){
+        return `https://${this.bucketname}.s3.amazonaws.com/${todoId}`
+    }
+
+    getUploadUrl(todoId:string){
+        return this.s3.getSignedUrl('putObject',{
+            Bucket:this.bucketname,
+            Key:todoId,
+            Expires:urlExpiration
+        }) as string
+    }
 }
